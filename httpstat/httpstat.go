@@ -91,7 +91,7 @@ func (t *Tracer) ClientTrace() *httptrace.ClientTrace {
 func (t *Tracer) Done(now time.Time) {
 	t.DNSLookup = t.dnsDone.Sub(t.dnsStart)
 	t.TCPConnection = t.connectDone.Sub(t.connectStart)
-	// TODO investigate why connectStart is called but connectDone is not called.
+	// TODO: Investigate why connectStart is called but connectDone is not called.
 	if t.TCPConnection < 0 {
 		t.TCPConnection = 0
 	}
