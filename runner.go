@@ -13,7 +13,7 @@ import (
 	"github.com/go-repo/httpt/metric/influxdb"
 	"github.com/go-repo/httpt/runfunc"
 	"github.com/go-repo/tokenbucket"
-	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/v3/cpu"
 )
 
 type RunnerConfig struct {
