@@ -1,6 +1,23 @@
 package metric
 
-import "time"
+import (
+	"time"
+)
+
+type DefaultRequestMetric string
+
+const (
+	DefaultRequestMetricDNSLookup         DefaultRequestMetric = "dns_lookup"
+	DefaultRequestMetricTCPConnection     DefaultRequestMetric = "tcp_connection"
+	DefaultRequestMetricTLSHandshake      DefaultRequestMetric = "tls_handshake"
+	DefaultRequestMetricWaitingConnection DefaultRequestMetric = "waiting_connection"
+	DefaultRequestMetricSending           DefaultRequestMetric = "sending"
+	DefaultRequestMetricWaitingServer     DefaultRequestMetric = "waiting_server"
+	DefaultRequestMetricReceiving         DefaultRequestMetric = "receiving"
+	DefaultRequestMetricRequestsNumber    DefaultRequestMetric = "requests_number"
+)
+
+const DefaultMetricError = "error"
 
 const (
 	MeasurementError             = "error"
@@ -14,6 +31,23 @@ const (
 	MeasurementRequestsNumber    = "requests_number"
 	MeasurementCPUPercent        = "cpu_percent"
 )
+
+type Metric struct {
+	Name      string
+	KeyValues map[string]interface{}
+	Timestamp time.Time
+}
+
+func NewTypeValueMetric(name string, metricType string, metricValue interface{}, timestamp time.Time) *Metric {
+	return &Metric{
+		Name: name,
+		KeyValues: map[string]interface{}{
+			"type":  metricType,
+			"value": metricValue,
+		},
+		Timestamp: timestamp,
+	}
+}
 
 type Point struct {
 	Measurement string
@@ -48,6 +82,10 @@ func NewPoint(measurement string, typeVal string, val interface{}, t *time.Time)
 	}
 }
 
-// TODO: Abstract a collector.
 type Collector interface {
+	// This function is called sequentially,
+	// the next function will be called only after the current one returns, this function is blocking.
+	CollectMetric(*Metric)
+	// This function is called only once, for closing work, this function is blocking.
+	Done()
 }

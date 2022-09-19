@@ -10,19 +10,16 @@ import (
 	"time"
 
 	"github.com/go-repo/httpt/metric"
-	"github.com/go-repo/httpt/metric/influxdb"
 	"github.com/go-repo/httpt/runfunc"
 	"github.com/go-repo/tokenbucket"
-	"github.com/shirou/gopsutil/v3/cpu"
 )
 
 type RunnerConfig struct {
 	// Duration to run,
 	// 0 mean no limit.
-	Duration time.Duration
-	Groups   []*RunnerGroup
-
-	Influxdb *influxdb.Config
+	Duration         time.Duration
+	Groups           []*RunnerGroup
+	MetricCollectors []metric.Collector
 }
 
 type RunnerGroup struct {
@@ -43,14 +40,11 @@ type Runner struct {
 	// Used for initializing groups,
 	// all groups are initialized then close PauseC,
 	// mean terminate paused status.
-	PauseC  chan struct{}
-	CancelC chan struct{}
-	// Units and monitorCPU write to MetricC,
-	MetricC              chan []*metric.Point
-	AllGroupsDone        <-chan struct{}
-	MetricCollectorDoneC <-chan struct{}
-	// monitorCPU use MetricC so must close before MetricC is closed.
-	MonitorCPUDoneC <-chan struct{}
+	PauseC                chan struct{}
+	CancelC               chan struct{}
+	MetricC               chan<- *metric.Metric
+	AllGroupsDone         <-chan struct{}
+	MetricCollectorsDoneC <-chan struct{}
 }
 
 func newTransport() *http.Transport {
@@ -74,7 +68,7 @@ func unitGoroutine(
 	fn runfunc.Func,
 	pauseC <-chan struct{},
 	cancelC <-chan struct{},
-	metricC chan<- []*metric.Point,
+	metricC chan<- *metric.Metric,
 	atomicFn func() (iter int, isCancel bool),
 	initDoneWG *sync.WaitGroup,
 ) {
@@ -196,7 +190,7 @@ func initGroup(
 	group *RunnerGroup,
 	pauseC <-chan struct{},
 	cancelC <-chan struct{},
-	metricC chan<- []*metric.Point,
+	metricC chan<- *metric.Metric,
 ) (
 	groupDoneC <-chan struct{},
 ) {
@@ -234,30 +228,54 @@ func initGroup(
 	return doneC
 }
 
-func monitorCPU(metricC chan<- []*metric.Point, cancelC <-chan struct{}) (monitorCPUDoneC <-chan struct{}) {
-	doneC := make(chan struct{})
+func copyMetricChan(number int, cancelC <-chan struct{}, metricC <-chan *metric.Metric, metricChanBufferSize int) []<-chan *metric.Metric {
+	if number < 1 {
+		return nil
+	}
+
+	// If there is only one, not copying can reduce some logic.
+	if number == 1 {
+		return []<-chan *metric.Metric{metricC}
+	}
+
+	var copiedMetricChans = make([]chan *metric.Metric, 0, number)
+	var returnMetricChans = make([]<-chan *metric.Metric, 0, number)
+	for i := 0; i < number; i++ {
+		var ch = make(chan *metric.Metric, metricChanBufferSize)
+		copiedMetricChans = append(copiedMetricChans, ch)
+		returnMetricChans = append(returnMetricChans, ch)
+	}
+
 	go func() {
 		for {
 			select {
+			// Reason for checking ok:
+			// Refer https://go.dev/ref/spec#Close,
+			// After calling close, and after any previously sent values have been received,
+			// receive operations will return the zero value for the channel's type without blocking.
+			case m, ok := <-metricC:
+				if ok {
+					for _, c := range copiedMetricChans {
+						c <- m
+					}
+				}
 			case <-cancelC:
-				close(doneC)
+				// Send all remaining metrics.
+				for m := range metricC {
+					for _, c := range copiedMetricChans {
+						c <- m
+					}
+				}
+
+				for _, c := range copiedMetricChans {
+					close(c)
+				}
 				return
-			default:
-				p, err := cpu.Percent(time.Second, false)
-				if err != nil {
-					metricC <- []*metric.Point{
-						metric.NewPoint(metric.MeasurementError, "error", err.Error(), metric.TimeNowPointer()),
-					}
-				}
-				if len(p) > 0 {
-					metricC <- []*metric.Point{
-						metric.NewPoint(metric.MeasurementCPUPercent, "0", p[0], metric.TimeNowPointer()),
-					}
-				}
 			}
 		}
 	}()
-	return doneC
+
+	return returnMetricChans
 }
 
 func NewRunner(cfg *RunnerConfig) (*Runner, error) {
@@ -269,9 +287,8 @@ func NewRunner(cfg *RunnerConfig) (*Runner, error) {
 		unitsNum = unitsNum + g.Number
 	}
 	// TODO: Check if 2*unitsNum is reasonable.
-	metricC := make(chan []*metric.Point, 2*unitsNum)
-
-	monitorCPUDoneC := monitorCPU(metricC, cancelC)
+	metricChanBufferSize := 2 * unitsNum
+	metricC := make(chan *metric.Metric, metricChanBufferSize)
 
 	var groupDoneChans []<-chan struct{}
 	for _, g := range cfg.Groups {
@@ -288,23 +305,15 @@ func NewRunner(cfg *RunnerConfig) (*Runner, error) {
 		close(allGroupsDoneC)
 	}()
 
-	var metricCollectorDoneC <-chan struct{}
-	if cfg.Influxdb != nil {
-		var err error
-		metricCollectorDoneC, err = influxdb.Run(*cfg.Influxdb, cancelC, metricC)
-		if err != nil {
-			return nil, err
-		}
-	}
+	var metricCollectorsDoneC = initCollectors(cancelC, metricC, metricChanBufferSize, cfg.MetricCollectors)
 
 	return &Runner{
-		Config:               cfg,
-		PauseC:               pauseC,
-		CancelC:              cancelC,
-		MetricC:              metricC,
-		AllGroupsDone:        allGroupsDoneC,
-		MetricCollectorDoneC: metricCollectorDoneC,
-		MonitorCPUDoneC:      monitorCPUDoneC,
+		Config:                cfg,
+		PauseC:                pauseC,
+		CancelC:               cancelC,
+		MetricC:               metricC,
+		AllGroupsDone:         allGroupsDoneC,
+		MetricCollectorsDoneC: metricCollectorsDoneC,
 	}, nil
 }
 
@@ -335,11 +344,9 @@ func (r *Runner) Run() {
 		close(r.CancelC)
 	}
 
-	// monitorCPU use MetricC so must close before MetricC is closed.
-	<-r.MonitorCPUDoneC
-
-	// For read MetricC is not blocked.
+	// The important role of closing the channel is to tell the receiver
+	// that the channel is closed and all data must be processed.
 	close(r.MetricC)
 	// Wait for MetricCollector to complete the rest of the work.
-	<-r.MetricCollectorDoneC
+	<-r.MetricCollectorsDoneC
 }

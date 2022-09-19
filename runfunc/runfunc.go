@@ -20,11 +20,11 @@ type Param interface {
 	ID() int
 	// Start at 0, each group has its own iteration.
 	Iter() int
-	// Report a error,
+	// Report an error,
 	// typeVal is used to identify a type of errors.
 	AddError(err error, typeVal string)
 	// Report a metric point.
-	AddMetricPoint(*metric.Point)
+	AddMetric(*metric.Metric)
 }
 
 type Response interface {
