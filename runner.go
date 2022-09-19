@@ -17,9 +17,9 @@ import (
 type RunnerConfig struct {
 	// Duration to run,
 	// 0 mean no limit.
-	Duration         time.Duration
-	Groups           []*RunnerGroup
-	MetricCollectors []metric.Collector
+	Duration time.Duration
+	Groups   []*RunnerGroup
+	Metric   RunnerMetric
 }
 
 type RunnerGroup struct {
@@ -33,6 +33,12 @@ type RunnerGroup struct {
 	Iteration int
 
 	unitMutex sync.Mutex
+}
+
+type RunnerMetric struct {
+	// All are disabled by default, manually enable if required.
+	EnableDefaultRequestMetrics map[metric.DefaultRequestMetric]bool
+	MetricCollectors            []metric.Collector
 }
 
 type Runner struct {
@@ -68,13 +74,15 @@ func unitGoroutine(
 	fn runfunc.Func,
 	pauseC <-chan struct{},
 	cancelC <-chan struct{},
+	enableDefaultRequestMetrics map[metric.DefaultRequestMetric]bool,
 	metricC chan<- *metric.Metric,
 	atomicFn func() (iter int, isCancel bool),
 	initDoneWG *sync.WaitGroup,
 ) {
 	httpImpl := &runFunc{
-		id:      id,
-		metricC: metricC,
+		id:                          id,
+		enableDefaultRequestMetrics: enableDefaultRequestMetrics,
+		metricC:                     metricC,
 	}
 
 	isInitDone := false
@@ -190,6 +198,7 @@ func initGroup(
 	group *RunnerGroup,
 	pauseC <-chan struct{},
 	cancelC <-chan struct{},
+	enableDefaultRequestMetrics map[metric.DefaultRequestMetric]bool,
 	metricC chan<- *metric.Metric,
 ) (
 	groupDoneC <-chan struct{},
@@ -211,8 +220,8 @@ func initGroup(
 		go func(idx int) {
 			defer unitDoneWG.Done()
 			unitGoroutine(
-				idx, group.RunFunc, pauseC, cancelC, metricC,
-				atomicUnitFn, &unitInitDoneWG,
+				idx, group.RunFunc, pauseC, cancelC, enableDefaultRequestMetrics,
+				metricC, atomicUnitFn, &unitInitDoneWG,
 			)
 		}(i)
 	}
@@ -292,7 +301,7 @@ func NewRunner(cfg *RunnerConfig) (*Runner, error) {
 
 	var groupDoneChans []<-chan struct{}
 	for _, g := range cfg.Groups {
-		doneC := initGroup(g, pauseC, cancelC, metricC)
+		doneC := initGroup(g, pauseC, cancelC, cfg.Metric.EnableDefaultRequestMetrics, metricC)
 		groupDoneChans = append(groupDoneChans, doneC)
 	}
 
@@ -305,7 +314,7 @@ func NewRunner(cfg *RunnerConfig) (*Runner, error) {
 		close(allGroupsDoneC)
 	}()
 
-	var metricCollectorsDoneC = initCollectors(cancelC, metricC, metricChanBufferSize, cfg.MetricCollectors)
+	var metricCollectorsDoneC = initCollectors(cancelC, metricC, metricChanBufferSize, cfg.Metric.MetricCollectors)
 
 	return &Runner{
 		Config:                cfg,

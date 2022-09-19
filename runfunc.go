@@ -9,10 +9,12 @@ import (
 )
 
 type runFunc struct {
-	client  *clientWithTracer
-	id      int
-	iter    int
-	metricC chan<- *metric.Metric
+	client *clientWithTracer
+	id     int
+	iter   int
+	// TODO Put in a more appropriate place.
+	enableDefaultRequestMetrics map[metric.DefaultRequestMetric]bool
+	metricC                     chan<- *metric.Metric
 }
 
 // TODO: Add cancel for request.
@@ -32,14 +34,30 @@ func (h *runFunc) Request(r *http.Request, options *runfunc.RequestOptions) (run
 
 	now := time.Now()
 	for _, s := range res.stats {
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricDNSLookup), metricType, int64(s.DNSLookup), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTCPConnection), metricType, int64(s.TCPConnection), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTLSHandshake), metricType, int64(s.TLSHandshake), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingConnection), metricType, int64(s.WaitingConnection), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricSending), metricType, int64(s.Sending), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingServer), metricType, int64(s.WaitingServer), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricReceiving), metricType, int64(s.Receiving), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestsNumber), metricType, 1, now)
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricDNSLookup] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricDNSLookup), metricType, int64(s.DNSLookup), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricTCPConnection] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTCPConnection), metricType, int64(s.TCPConnection), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricTLSHandshake] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTLSHandshake), metricType, int64(s.TLSHandshake), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricWaitingConnection] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingConnection), metricType, int64(s.WaitingConnection), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricSending] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricSending), metricType, int64(s.Sending), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricWaitingServer] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingServer), metricType, int64(s.WaitingServer), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricReceiving] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricReceiving), metricType, int64(s.Receiving), now)
+		}
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricRequestsNumber] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestsNumber), metricType, 1, now)
+		}
 	}
 
 	return res, nil

@@ -44,8 +44,10 @@ func TestRunner_MetricCollector(t *testing.T) {
 				Iteration: iteration,
 			},
 		},
-		// Test multiple collectors.
-		MetricCollectors: []metric.Collector{collector1, collector2},
+		Metric: RunnerMetric{
+			// Test multiple collectors.
+			MetricCollectors: []metric.Collector{collector1, collector2},
+		},
 	})
 	assert.NoError(t, err)
 
