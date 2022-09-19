@@ -22,7 +22,7 @@ type Param interface {
 	Iter() int
 	// Report an error,
 	// metricType is used to identify a type of errors.
-	AddError(err error, metricType string)
+	AddErrorMetric(err error, metricType string)
 	// Report a metric point.
 	AddMetric(*metric.Metric)
 }

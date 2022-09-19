@@ -127,13 +127,13 @@ func runFuncWithRecover(fn runfunc.Func, param runfunc.Param) {
 	defer func() {
 		r := recover()
 		if r != nil {
-			param.AddError(errors.New(fmt.Sprint(r)), "panic")
+			param.AddErrorMetric(errors.New(fmt.Sprint(r)), "panic")
 		}
 	}()
 
 	err := fn(param)
 	if err != nil {
-		param.AddError(err, "error")
+		param.AddErrorMetric(err, "error")
 	}
 }
 

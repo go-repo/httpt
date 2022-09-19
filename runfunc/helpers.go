@@ -34,7 +34,7 @@ func GetFunc(url string, option *GetFuncOption) Func {
 		}
 
 		if res.Resp().StatusCode != http.StatusOK {
-			p.AddError(errors.New(fmt.Sprintf("status code is not 200, actual is %v", res.Resp().StatusCode)), url)
+			p.AddErrorMetric(errors.New(fmt.Sprintf("status code is not 200, actual is %v", res.Resp().StatusCode)), url)
 			return nil
 		}
 

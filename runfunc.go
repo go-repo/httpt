@@ -71,7 +71,7 @@ func (h *runFunc) Iter() int {
 	return h.iter
 }
 
-func (h *runFunc) AddError(err error, metricType string) {
+func (h *runFunc) AddErrorMetric(err error, metricType string) {
 	h.metricC <- metric.NewTypeValueMetric(metric.DefaultMetricError, metricType, err.Error(), time.Now())
 }
 
