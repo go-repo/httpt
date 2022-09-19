@@ -22,24 +22,24 @@ func (h *runFunc) Request(r *http.Request, options *runfunc.RequestOptions) (run
 		return nil, err
 	}
 
-	typeVal := ""
-	if options != nil && options.Type != "" {
-		typeVal = options.Type
+	metricType := ""
+	if options != nil && options.MetricType != "" {
+		metricType = options.MetricType
 	}
-	if typeVal == "" {
-		typeVal = r.URL.String()
+	if metricType == "" {
+		metricType = r.URL.String()
 	}
 
 	now := time.Now()
 	for _, s := range res.stats {
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricDNSLookup), typeVal, int64(s.DNSLookup), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTCPConnection), typeVal, int64(s.TCPConnection), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTLSHandshake), typeVal, int64(s.TLSHandshake), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingConnection), typeVal, int64(s.WaitingConnection), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricSending), typeVal, int64(s.Sending), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingServer), typeVal, int64(s.WaitingServer), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricReceiving), typeVal, int64(s.Receiving), now)
-		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestsNumber), typeVal, 1, now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricDNSLookup), metricType, int64(s.DNSLookup), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTCPConnection), metricType, int64(s.TCPConnection), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricTLSHandshake), metricType, int64(s.TLSHandshake), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingConnection), metricType, int64(s.WaitingConnection), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricSending), metricType, int64(s.Sending), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricWaitingServer), metricType, int64(s.WaitingServer), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricReceiving), metricType, int64(s.Receiving), now)
+		h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestsNumber), metricType, 1, now)
 	}
 
 	return res, nil
@@ -53,8 +53,8 @@ func (h *runFunc) Iter() int {
 	return h.iter
 }
 
-func (h *runFunc) AddError(err error, typeVal string) {
-	h.metricC <- metric.NewTypeValueMetric(metric.DefaultMetricError, typeVal, err.Error(), time.Now())
+func (h *runFunc) AddError(err error, metricType string) {
+	h.metricC <- metric.NewTypeValueMetric(metric.DefaultMetricError, metricType, err.Error(), time.Now())
 }
 
 func (h *runFunc) AddMetric(metric *metric.Metric) {

@@ -11,7 +11,7 @@ type Func func(Param) error
 type RequestOptions struct {
 	// Used to identify a type of requests,
 	// If don't set type, default set to request's URL.
-	Type string
+	MetricType string
 }
 
 type Param interface {
@@ -21,8 +21,8 @@ type Param interface {
 	// Start at 0, each group has its own iteration.
 	Iter() int
 	// Report an error,
-	// typeVal is used to identify a type of errors.
-	AddError(err error, typeVal string)
+	// metricType is used to identify a type of errors.
+	AddError(err error, metricType string)
 	// Report a metric point.
 	AddMetric(*metric.Metric)
 }

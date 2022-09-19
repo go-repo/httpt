@@ -6,8 +6,6 @@ github.com/go-repo/assert v0.0.0-20201109140342-84dad770313d h1:Dtv92Q2tDxGeYIM2
 github.com/go-repo/assert v0.0.0-20201109140342-84dad770313d/go.mod h1:I7m9HHDO8OjK6+X6VjHpyquUQ178pg3GQYuSWByfhYo=
 github.com/go-repo/tokenbucket v0.0.0-20201017160111-17ffb5a98114 h1:epJQApjQMLOSU3AFOgfzQYD2axLYptShIIC5D8cFVe0=
 github.com/go-repo/tokenbucket v0.0.0-20201017160111-17ffb5a98114/go.mod h1:kTYl3zUj4z11Qvn4OKq+SDaURxdxuuQwG7pPpaFVFZY=
-github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c h1:qSHzRbhzK8RdXOsAdfDgO49TtqC1oZ+acxPrkfTxcCs=
-github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c/go.mod h1:qj24IKcXYK6Iy9ceXlo3Tc+vtHo9lIhSX5JddghvEPo=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.9.0 h1:trlNQbNUG3OdDrDil03MCb1H2o9nJ1x4/5LYw7byDE0=
