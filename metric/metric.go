@@ -34,15 +34,18 @@ const (
 
 type Metric struct {
 	Name      string
-	KeyValues map[string]interface{}
+	Tags      map[string]string
+	Fields    map[string]interface{}
 	Timestamp time.Time
 }
 
 func NewTypeValueMetric(name string, metricType string, metricValue interface{}, timestamp time.Time) *Metric {
 	return &Metric{
 		Name: name,
-		KeyValues: map[string]interface{}{
-			"type":  metricType,
+		Tags: map[string]string{
+			"type": metricType,
+		},
+		Fields: map[string]interface{}{
 			"value": metricValue,
 		},
 		Timestamp: timestamp,
