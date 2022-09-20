@@ -55,8 +55,8 @@ func (h *runFunc) Request(r *http.Request, options *runfunc.RequestOptions) (run
 		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricReceiving] {
 			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricReceiving), metricType, int64(s.Receiving), now)
 		}
-		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricRequestsNumber] {
-			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestsNumber), metricType, 1, now)
+		if h.enableDefaultRequestMetrics[metric.DefaultRequestMetricRequestNumber] {
+			h.metricC <- metric.NewTypeValueMetric(string(metric.DefaultRequestMetricRequestNumber), metricType, 1, now)
 		}
 	}
 

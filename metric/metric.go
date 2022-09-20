@@ -14,7 +14,7 @@ const (
 	DefaultRequestMetricSending           DefaultRequestMetric = "sending"
 	DefaultRequestMetricWaitingServer     DefaultRequestMetric = "waiting_server"
 	DefaultRequestMetricReceiving         DefaultRequestMetric = "receiving"
-	DefaultRequestMetricRequestsNumber    DefaultRequestMetric = "requests_number"
+	DefaultRequestMetricRequestNumber     DefaultRequestMetric = "request_number"
 )
 
 const DefaultMetricError = "error"
