@@ -7,6 +7,7 @@ type BasicMetricCollectorConfig struct {
 	// the next function will be called only after the current one returns, this function is blocking.
 	CollectMetricFunc CollectMetricFunc
 	// This function is called only once, for closing work, this function is blocking.
+	// This function only is called when all CollectMetricFunc calls are done.
 	DoneFunc DoneFunc
 }
 
@@ -39,8 +40,8 @@ func (x *basicMetricCollector) Start(cancelC <-chan struct{}, metricC <-chan *me
 				for m := range metricC {
 					x.Config.CollectMetricFunc(m)
 				}
-				x.Config.DoneFunc()
 
+				x.Config.DoneFunc()
 				close(doneC)
 				return
 			}
