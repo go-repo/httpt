@@ -40,9 +40,8 @@ func NewTypeValueMetric(name string, metricType string, metricValue interface{},
 }
 
 type Collector interface {
-	// This function is called sequentially,
-	// the next function will be called only after the current one returns, this function is blocking.
-	CollectMetric(*Metric)
-	// This function is called only once, for closing work, this function is blocking.
-	Done()
+	// When cancelC is closed, collector needs to start closing.
+	// After cancelC is closed, metricC is subsequently closed,
+	// collector needs to close doneC after completing the closing work.
+	Start(cancelC <-chan struct{}, metricC <-chan *Metric) (doneC <-chan struct{})
 }

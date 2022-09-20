@@ -237,56 +237,6 @@ func initGroup(
 	return doneC
 }
 
-func copyMetricChan(number int, cancelC <-chan struct{}, metricC <-chan *metric.Metric, metricChanBufferSize int) []<-chan *metric.Metric {
-	if number < 1 {
-		return nil
-	}
-
-	// If there is only one, not copying can reduce some logic.
-	if number == 1 {
-		return []<-chan *metric.Metric{metricC}
-	}
-
-	var copiedMetricChans = make([]chan *metric.Metric, 0, number)
-	var returnMetricChans = make([]<-chan *metric.Metric, 0, number)
-	for i := 0; i < number; i++ {
-		var ch = make(chan *metric.Metric, metricChanBufferSize)
-		copiedMetricChans = append(copiedMetricChans, ch)
-		returnMetricChans = append(returnMetricChans, ch)
-	}
-
-	go func() {
-		for {
-			select {
-			// Reason for checking ok:
-			// Refer https://go.dev/ref/spec#Close,
-			// After calling close, and after any previously sent values have been received,
-			// receive operations will return the zero value for the channel's type without blocking.
-			case m, ok := <-metricC:
-				if ok {
-					for _, c := range copiedMetricChans {
-						c <- m
-					}
-				}
-			case <-cancelC:
-				// Send all remaining metrics.
-				for m := range metricC {
-					for _, c := range copiedMetricChans {
-						c <- m
-					}
-				}
-
-				for _, c := range copiedMetricChans {
-					close(c)
-				}
-				return
-			}
-		}
-	}()
-
-	return returnMetricChans
-}
-
 func NewRunner(cfg *RunnerConfig) (*Runner, error) {
 	pauseC := make(chan struct{})
 	cancelC := make(chan struct{})

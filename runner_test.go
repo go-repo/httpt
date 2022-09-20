@@ -7,24 +7,34 @@ import (
 
 	"github.com/go-repo/assert"
 	"github.com/go-repo/httpt/metric"
+	"github.com/go-repo/httpt/metric/collector"
 	"github.com/go-repo/httpt/runfunc"
 )
 
 type testMetricCollector struct {
+	basicMetricCollector metric.Collector
+
 	metrics  []*metric.Metric
 	doneTime time.Time
 }
 
-func (x *testMetricCollector) CollectMetric(m *metric.Metric) {
-	x.metrics = append(x.metrics, m)
-}
-
-func (x *testMetricCollector) Done() {
-	x.doneTime = time.Now()
-}
-
 func newTestMetricCollector() *testMetricCollector {
-	return &testMetricCollector{}
+	var testCollector = &testMetricCollector{}
+
+	testCollector.basicMetricCollector = collector.NewBasicMetricCollector(collector.BasicMetricCollectorConfig{
+		CollectMetricFunc: func(m *metric.Metric) {
+			testCollector.metrics = append(testCollector.metrics, m)
+		},
+		DoneFunc: func() {
+			testCollector.doneTime = time.Now()
+		},
+	})
+
+	return testCollector
+}
+
+func (x *testMetricCollector) Start(cancelC <-chan struct{}, metricC <-chan *metric.Metric) <-chan struct{} {
+	return x.basicMetricCollector.Start(cancelC, metricC)
 }
 
 // TODO MetricCollector test is insufficient.
