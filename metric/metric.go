@@ -28,13 +28,9 @@ type Metric struct {
 
 func NewTypeValueMetric(name string, metricType string, metricValue interface{}, timestamp time.Time) *Metric {
 	return &Metric{
-		Name: name,
-		Tags: map[string]string{
-			"type": metricType,
-		},
-		Fields: map[string]interface{}{
-			"value": metricValue,
-		},
+		Name:      name,
+		Tags:      TypeTag(metricType),
+		Fields:    ValueField(metricValue),
 		Timestamp: timestamp,
 	}
 }
@@ -44,4 +40,16 @@ type Collector interface {
 	// After cancelC is closed, metricC is subsequently closed,
 	// collector needs to close doneC after completing the closing work.
 	Start(cancelC <-chan struct{}, metricC <-chan *Metric) (doneC <-chan struct{})
+}
+
+func TypeTag(metricType string) map[string]string {
+	return map[string]string{
+		"type": metricType,
+	}
+}
+
+func ValueField(metricValue interface{}) map[string]interface{} {
+	return map[string]interface{}{
+		"value": metricValue,
+	}
 }
