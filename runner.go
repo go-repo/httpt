@@ -85,18 +85,18 @@ func unitGoroutine(
 		metricC:                     metricC,
 	}
 
+	// Ignore error because cookiejar.New never return a error.
+	jar, _ := cookiejar.New(nil)
+	client := newClient(&http.Client{
+		// For create a new connection each loop.
+		Transport: newTransport(),
+		// For share cookie within all requests of one runFunc runtime.
+		Jar: jar,
+	})
+	httpImpl.client = client
+
 	isInitDone := false
 	for {
-		// Ignore error because cookiejar.New never return a error.
-		jar, _ := cookiejar.New(nil)
-		client := newClient(&http.Client{
-			// For create a new connection each loop.
-			Transport: newTransport(),
-			// For share cookie within all requests of one runFunc runtime.
-			Jar: jar,
-		})
-		httpImpl.client = client
-
 		select {
 		case <-cancelC:
 			return
