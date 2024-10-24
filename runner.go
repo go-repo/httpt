@@ -118,6 +118,7 @@ func unitGoroutine(
 			<-pauseC
 			runFuncWithRecover(fn, httpImpl)
 
+			httpImpl.client.client.CloseIdleConnections()
 			httpImpl.iter = httpImpl.iter + 1
 		}
 	}
