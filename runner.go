@@ -31,7 +31,13 @@ type RunnerGroup struct {
 	MaxRPS float64
 	// Fixed iterations of `RunFunc` run.
 	Iteration int
-
+	// If true, Http client will not be created inside group loop
+	DisableHttpClient bool
+	// If true, each request of same concurrency will reuse the same http client. For example, if Number is set to 50, it will create 50 http clients and reuse them.
+	ReuseHttpConnection bool
+	// Customize http.Transport for each group.
+	CustomTransport *http.Transport
+	// mutex for single group.
 	unitMutex sync.Mutex
 }
 
@@ -78,24 +84,37 @@ func unitGoroutine(
 	metricC chan<- *metric.Metric,
 	atomicFn func() (iter int, isCancel bool),
 	initDoneWG *sync.WaitGroup,
+	customTransport *http.Transport,
+	reuseHttpClient bool,
+	useHttpClient bool,
 ) {
 	httpImpl := &runFunc{
 		id:                          id,
 		enableDefaultRequestMetrics: enableDefaultRequestMetrics,
 		metricC:                     metricC,
 	}
+	transport := customTransport
+	if transport == nil {
+		transport = newTransport()
+	}
+
+	if useHttpClient && reuseHttpClient {
+		jar, _ := cookiejar.New(nil)
+		httpImpl.client = newClient(&http.Client{
+			Transport: transport,
+			Jar:       jar,
+		})
+	}
 
 	isInitDone := false
 	for {
-		// Ignore error because cookiejar.New never return a error.
-		jar, _ := cookiejar.New(nil)
-		client := newClient(&http.Client{
-			// For create a new connection each loop.
-			Transport: newTransport(),
-			// For share cookie within all requests of one runFunc runtime.
-			Jar: jar,
-		})
-		httpImpl.client = client
+		if useHttpClient && !reuseHttpClient {
+			jar, _ := cookiejar.New(nil)
+			httpImpl.client = newClient(&http.Client{
+				Transport: transport,
+				Jar:       jar,
+			})
+		}
 
 		select {
 		case <-cancelC:
@@ -117,8 +136,6 @@ func unitGoroutine(
 
 			<-pauseC
 			runFuncWithRecover(fn, httpImpl)
-
-			httpImpl.client.client.CloseIdleConnections()
 			httpImpl.iter = httpImpl.iter + 1
 		}
 	}
